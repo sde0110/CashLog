@@ -195,7 +195,7 @@ function EntryForm({ prefill, onClose }: { prefill: EntryPrefill; onClose: () =>
             <p className="text-sm text-muted -mt-2">통장 → 예금, 현금 인출, 카드대금처럼 <b className="text-ink-2">내 돈의 자리만 바뀌는 것</b>입니다. 수입·지출 합계에 들어가지 않습니다.</p>
           )}
 
-          <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
             <label className="field">
               <span>금액</span>
               <div className="relative">
@@ -205,7 +205,7 @@ function EntryForm({ prefill, onClose }: { prefill: EntryPrefill; onClose: () =>
             </label>
             <label className="field">
               <span>날짜</span>
-              <input type="date" className="input !min-h-[60px]" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <input type="date" className="input sm:!min-h-[60px]" value={date} onChange={(e) => setDate(e.target.value)} required />
             </label>
           </div>
           <div className="flex gap-2 -mt-3 scroll-x">

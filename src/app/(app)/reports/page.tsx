@@ -42,9 +42,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 function Stat({ label, value, tone, note }: { label: string; value: number; tone?: 'in' | 'out' | 'brand'; note?: string }) {
   const c = tone === 'in' ? 'text-in-ink' : tone === 'out' ? 'text-out-ink' : tone === 'brand' ? 'text-brand-ink' : '';
   return (
-    <div className="rounded-2xl border border-line p-4">
+    <div className="rounded-2xl border border-line p-3 sm:p-4 min-w-0">
       <p className="text-sm text-muted">{label}</p>
-      <p className={`text-xl md:text-2xl font-bold num ${c}`}>{won(value)}<span className="text-sm">원</span></p>
+      <p className={`text-lg sm:text-xl md:text-2xl font-bold num whitespace-nowrap ${c}`}>{won(value)}<span className="text-sm">원</span></p>
       {note && <p className="text-xs text-muted mt-0.5">{note}</p>}
     </div>
   );

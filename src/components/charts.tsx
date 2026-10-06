@@ -50,10 +50,10 @@ export function MonthlyBars({ months }: { months: { ym: string; totalIn: number;
   const h = hover !== null ? months[hover] : null;
   return (
     <div>
-      <div className="flex items-center gap-4 text-sm mb-3">
-        <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm" style={{ background: 'var(--in)' }} />수입</span>
-        <span className="flex items-center gap-1.5"><i className="h-3 w-3 rounded-sm" style={{ background: 'var(--out)' }} />지출 (사업 + 생활비)</span>
-        <span className="ml-auto text-muted num min-h-[1.25rem]">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm mb-3">
+        <span className="flex items-center gap-1.5 whitespace-nowrap"><i className="h-3 w-3 rounded-sm" style={{ background: 'var(--in)' }} />수입</span>
+        <span className="flex items-center gap-1.5 whitespace-nowrap"><i className="h-3 w-3 rounded-sm" style={{ background: 'var(--out)' }} />지출 (사업 + 생활비)</span>
+        <span className="basis-full sm:basis-auto sm:ml-auto text-muted num min-h-[1.25rem]">
           {h ? `${Number(h.ym.slice(5))}월 · 수입 ${won(h.totalIn)} · 지출 ${won(h.totalOut)}` : '막대에 손가락/마우스를 올려 보세요'}
         </span>
       </div>

@@ -267,11 +267,11 @@ export function DataSection({ stats }: { stats: { source: string; n: number; min
         <ul className="text-sm divide-y divide-line">
           {stats.length === 0 && <li className="py-2 text-muted">아직 거래가 없습니다.</li>}
           {stats.map((s) => (
-            <li key={s.source} className="py-2 flex items-center gap-3">
-              <span className="flex-1">{SRC[s.source] ?? s.source}</span>
-              <span className="num text-muted">{s.min} ~ {s.max}</span>
+            <li key={s.source} className="py-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="flex-1 min-w-[10rem] font-semibold">{SRC[s.source] ?? s.source}</span>
               <b className="num">{s.n.toLocaleString('ko-KR')}건</b>
               {(s.source === 'naver' || s.source === 'gas') && <button className="btn btn-danger btn-sm" onClick={() => remove(s.source as 'naver' | 'gas')} disabled={pending}>지우기</button>}
+              <span className="basis-full num text-muted text-xs">{s.min} ~ {s.max}</span>
             </li>
           ))}
         </ul>
