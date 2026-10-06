@@ -98,8 +98,12 @@ export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1, opts:
   /* 기초잔액 (피드백 4: 전월이월은 수입이 아니라 잔액) */
   const openingSum = new Map<string, number>();
   for (const o of b.openings) openingSum.set(o.account, (openingSum.get(o.account) ?? 0) + o.amount);
+  // 이미 기초잔액이 있거나 [잔액 맞추기]로 고친 계좌는 덮어쓰지 않는다 — 다시 가져와도 사용자가 맞춘 잔액이 유지된다
+  const openingsSet: { account: string; amount: number }[] = [];
   for (const [name, amount] of opts.dryRun ? [] : openingSum) {
-    await db.update(accounts).set({ openingBalance: amount, updatedAt: new Date() }).where(eq(accounts.name, name));
+    const done = await db.update(accounts).set({ openingBalance: amount, updatedAt: new Date() })
+      .where(and(eq(accounts.name, name), eq(accounts.openingBalance, 0))).returning({ id: accounts.id });
+    if (done.length) openingsSet.push({ account: name, amount });
   }
 
   /* 분류 */
@@ -242,7 +246,7 @@ export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1, opts:
     inserted,
     duplicates: original.rows.length - inserted,
     recurringAdded,
-    openings: [...openingSum].map(([account, amount]) => ({ account, amount })),
+    openings: openingsSet,
     dryRun: false,
   };
 }

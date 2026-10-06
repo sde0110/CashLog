@@ -10,7 +10,7 @@ import * as schema from '../src/db/schema';
 import { parseFiles, commitBundle } from '../src/server/importer';
 
 const dir = process.argv[2] ?? 'data';
-const files = fs.readdirSync(dir).filter((f) => /\.(csv|xlsx)$/i.test(f)).sort()
+const files = fs.readdirSync(dir).filter((f) => /\.(csv|xlsx?)$/i.test(f)).sort()
   .map((f) => { const b = fs.readFileSync(path.join(dir, f)); return { name: f, data: b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength) as ArrayBuffer }; });
 
 const { bundle, recognized, unknown } = parseFiles(files);
