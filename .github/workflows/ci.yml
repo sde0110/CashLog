@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: 타입검사 · 테스트 · 빌드
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: 타입 검사
+        run: npm run lint
+      - name: 단위 테스트 (집계 · 분개 · 가져오기 규칙)
+        run: npm test
+      - name: 마이그레이션 파일이 스키마와 일치하는지
+        run: |
+          npx drizzle-kit generate --name ci_check
+          if [ -n "$(git status --porcelain drizzle)" ]; then
+            echo "::error::src/db/schema.ts 가 바뀌었는데 마이그레이션이 없습니다. 'npm run db:generate' 후 커밋하세요."
+            git status --porcelain drizzle
+            exit 1
+          fi
+      - name: 프로덕션 빌드 (DB 없이)
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

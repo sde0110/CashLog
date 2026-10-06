@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/* ── 색 토큰 ─────────────────────────────────────────
+   수입 = 파랑, 지출 = 주황 (색약 검증 통과 쌍), 이체 = 회색.
+   글자색(-ink)은 대비를 위해 차트 채움색보다 한 단계 진하다. */
+:root {
+  color-scheme: light;
+  --bg: #f3f5f7;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --ink: #111418;
+  --ink-2: #4b5260;
+  --muted: #7a8291;
+  --line: #e5e8ec;
+  --brand: #00a04a;
+  --brand-ink: #007a37;
+  --brand-soft: #e6f6ed;
+  --in: #2a78d6;
+  --in-ink: #1d63bb;
+  --in-soft: #eaf2fc;
+  --out: #eb6834;
+  --out-ink: #c94a17;
+  --out-soft: #fdf0ea;
+  --neutral: #8a919c;
+  --danger: #d93a3a;
+  --warn-soft: #fff6e0;
+  --warn-ink: #8a5a00;
+  --shadow: 0 1px 2px rgb(16 24 40 / 6%), 0 1px 3px rgb(16 24 40 / 8%);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f1114;
+    --surface: #1a1d21;
+    --surface-2: #22262b;
+    --ink: #f2f4f6;
+    --ink-2: #c3c8d0;
+    --muted: #8e96a3;
+    --line: #2d3238;
+    --brand: #19b45e;
+    --brand-ink: #4ccf85;
+    --brand-soft: #143222;
+    --in: #3987e5;
+    --in-ink: #6aa8f2;
+    --in-soft: #172a42;
+    --out: #d95926;
+    --out-ink: #f08a5d;
+    --out-soft: #3a2116;
+    --neutral: #8a919c;
+    --danger: #f06464;
+    --warn-soft: #3a2f12;
+    --warn-ink: #f2c45a;
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-in: var(--in);
+  --color-in-ink: var(--in-ink);
+  --color-in-soft: var(--in-soft);
+  --color-out: var(--out);
+  --color-out-ink: var(--out-ink);
+  --color-out-soft: var(--out-soft);
+  --color-neutral: var(--neutral);
+  --color-danger: var(--danger);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-ink: var(--warn-ink);
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+/* 50~60대 사용자도 편하게: 기본 글자 17px (PRD 27) */
+html { font-size: 17px; -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: 'tnum';
+  -webkit-tap-highlight-color: transparent;
+}
+
+.num { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+.card {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+}
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  min-height: 48px; padding: 0 1.1rem; border-radius: 12px;
+  font-weight: 600; transition: background .15s, opacity .15s, transform .05s;
+  user-select: none;
+}
+.btn:active { transform: scale(.98); }
+.btn:disabled { opacity: .5; pointer-events: none; }
+.btn-primary { background: var(--brand); color: #fff; }
+.btn-primary:hover { filter: brightness(.95); }
+.btn-ghost { background: var(--surface-2); color: var(--ink); }
+.btn-ghost:hover { background: var(--line); }
+.btn-danger { background: transparent; color: var(--danger); }
+.btn-sm { min-height: 38px; padding: 0 .8rem; border-radius: 10px; font-size: .9rem; }
+
+.field { display: flex; flex-direction: column; gap: .35rem; }
+.field > span { font-size: .85rem; color: var(--ink-2); font-weight: 600; }
+.input {
+  width: 100%; min-height: 48px; padding: 0 .9rem; border-radius: 12px;
+  background: var(--surface-2); border: 1.5px solid transparent; color: var(--ink);
+  outline: none; transition: border-color .15s;
+}
+.input:focus { border-color: var(--brand); background: var(--surface); }
+textarea.input { padding: .7rem .9rem; min-height: 80px; }
+select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 21px, calc(100% - 13px) 21px; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2rem; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: .3rem;
+  min-height: 42px; padding: 0 .85rem; border-radius: 999px;
+  background: var(--surface-2); color: var(--ink); border: 1.5px solid transparent;
+  font-size: .92rem; font-weight: 500; white-space: nowrap;
+}
+.chip[aria-pressed='true'] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand-ink); font-weight: 700; }
+
+.seg { display: flex; background: var(--surface-2); border-radius: 12px; padding: 4px; gap: 4px; }
+.seg > button { flex: 1; min-height: 42px; border-radius: 9px; font-weight: 600; color: var(--muted); }
+.seg > button[aria-pressed='true'] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+
+.scroll-x { overflow-x: auto; scrollbar-width: none; }
+.scroll-x::-webkit-scrollbar { display: none; }
+
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.anim-sheet { animation: sheet-up .22s cubic-bezier(.2, .8, .2, 1); }
+.anim-fade { animation: fade-in .15s ease-out; }
+.anim-toast { animation: toast-in .2s ease-out; }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .no-print { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ddd; }
+}

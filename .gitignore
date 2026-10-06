@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+.DS_Store
+*.log
+*.tsbuildinfo
+next-env.d.ts
+.env*
+!.env.example
+.vercel
+.clasprc.json
+
+# 개인 금융 데이터 — 저장소에 올리지 않는다
+data/
+# 구 GAS 버전 — 실제 금액이 적힌 문서가 있어 공개 저장소에 올리지 않는다 (로컬 보관)
+legacy-gas/
+
+# 도구가 설치한 에이전트 스킬 · 로컬 설정
+.agents/
+skills-lock.json
+.claude/
+AGENTS.md
+CLAUDE.md
