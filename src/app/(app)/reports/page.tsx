@@ -7,6 +7,7 @@ import { getMasters, listTxs } from '@/server/data';
 import { MonthNav, Tabs } from '@/components/month-nav';
 import { BarList, MonthlyBars } from '@/components/charts';
 import { PrintButton, ExcludeToggle } from './report-client';
+import { ExportButton } from '@/components/export-panel';
 import { won } from '@/lib/format';
 
 export const metadata: Metadata = { title: '보고서' };
@@ -28,7 +29,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2 flex-wrap no-print">
         <h1 className="text-2xl font-bold">보고서</h1>
-        <PrintButton />
+        <div className="flex gap-2"><ExportButton /><PrintButton /></div>
       </div>
       <div className="scroll-x no-print"><div className="min-w-[30rem]"><Tabs current={tab} items={TABS.map((t) => ({ ...t, href: href(t.key) }))} /></div></div>
       {tab === 'monthly' && <Monthly ym={ym} />}

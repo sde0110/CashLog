@@ -7,6 +7,7 @@ import {
 } from '@/server/actions';
 import { useApp, type ClientAccount, type ClientCategory } from '@/components/app-context';
 import { AmountInput, fmt, toNum } from '@/components/pickers';
+import { ExportButton } from '@/components/export-panel';
 
 function Modal({ title, children, onClose, onSave, pending }: { title: string; children: React.ReactNode; onClose: () => void; onSave: () => void; pending: boolean }) {
   return (
@@ -332,8 +333,16 @@ export function DataSection({ stats }: { stats: { source: string; n: number; min
 
       <section className="card p-5 flex flex-col gap-3">
         <h2 className="font-bold">백업 · 내보내기</h2>
-        <p className="text-sm text-muted">모든 거래를 엑셀에서 열 수 있는 CSV로 내려받습니다. 한 달에 한 번 받아 두면 좋습니다. (데이터베이스는 Neon이 따로 보관하며, 짧은 기간의 시점 복원도 됩니다.)</p>
-        <a href="/api/export" className="btn btn-ghost">⬇ 전체 거래 CSV 내려받기</a>
+        <div className="rounded-xl border border-line p-4 flex flex-col gap-2">
+          <p className="font-semibold">📗 세무사 제출용 엑셀 장부</p>
+          <p className="text-sm text-muted">기간을 골라(작년 1년 · 부가세 1기/2기 등) 요약 · 매출 · 매입·경비 · 분개장 · 시산표가 시트별로 정리된 엑셀 파일을 받습니다.</p>
+          <ExportButton className="btn btn-primary" />
+        </div>
+        <div className="rounded-xl border border-line p-4 flex flex-col gap-2">
+          <p className="font-semibold">💾 전체 거래 백업 (CSV)</p>
+          <p className="text-sm text-muted">모든 거래를 한 파일로 받습니다. 한 달에 한 번 받아 두면 좋습니다. (데이터베이스는 Neon이 따로 보관하며, 짧은 기간의 시점 복원도 됩니다.)</p>
+          <a href="/api/export" className="btn btn-ghost">⬇ 전체 거래 CSV 내려받기</a>
+        </div>
       </section>
     </div>
   );
