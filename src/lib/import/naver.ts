@@ -189,8 +189,20 @@ export function isNaverCsv(text: string): boolean {
 
 export function convertNaverCsv(text: string, out: ImportBundle = emptyBundle()): ImportBundle {
   const rows = parseCsv(text.replace(/^﻿/, ''));
-  const header = rows.find((r) => r[0] === '날짜');
-  const isIncome = header ? header[1] === '내역' : /수입 현황/.test(text.slice(0, 300));
+  return convertNaverRows(rows, out, /수입 현황/.test(text.slice(0, 300)));
+}
+
+/** 네이버 가계부 엑셀(.xls)·CSV 의 한 시트인지 — 머리글 행으로 판단 */
+export function isNaverRows(rows: string[][]): boolean {
+  const header = rows.slice(0, 15).find((r) => String(r[0]).trim() === '날짜');
+  return !!header && ((header[1] === '내역' && header[2] === '금액') || (header[1] === '사용처' && header[2] === '사용내역'));
+}
+
+/** 네이버 가계부 내보내기 표(엑셀이든 CSV든 같은 칸 구성) → 거래 */
+export function convertNaverRows(rowsIn: unknown[][], out: ImportBundle = emptyBundle(), incomeHint = false): ImportBundle {
+  const rows = rowsIn.map((r) => r.map((c) => String(c ?? '')));
+  const header = rows.find((r) => r[0].trim() === '날짜');
+  const isIncome = header ? header[1] === '내역' : incomeHint;
   const seen = new Map<string, number>();
 
   for (const r of rows) {

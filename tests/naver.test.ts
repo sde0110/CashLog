@@ -81,3 +81,19 @@ describe('네이버 가계부 CSV 변환', () => {
     expect(new Set(b.rows.map((r) => r.sourceKey)).size).toBe(b.rows.length);
   });
 });
+
+describe('네이버 가계부 엑셀(.xls) 내보내기', () => {
+  it('CSV 와 같은 칸 구성의 엑셀 시트를 알아보고 똑같이 변환한다', async () => {
+    const XLSX = await import('xlsx');
+    const { parseCsv } = await import('@/lib/import/csv');
+    const { parseFiles } = await import('@/server/importer');
+    const rows = parseCsv(read('naver_expense.csv'));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Sheet1');
+    const buf = XLSX.write(wb, { type: 'array', bookType: 'xls' }) as ArrayBuffer;
+    const { bundle, recognized } = parseFiles([{ name: '네이버가계부_지출현황.xls'.normalize('NFD'), data: buf }]);
+    expect(recognized).toHaveLength(1);
+    const fromCsv = convertNaverCsv(read('naver_expense.csv'));
+    expect(bundle.rows.map((r) => [r.sourceKey, r.type, r.category, r.from])).toEqual(fromCsv.rows.map((r) => [r.sourceKey, r.type, r.category, r.from]));
+  });
+});

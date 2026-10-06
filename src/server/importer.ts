@@ -1,9 +1,10 @@
 import * as XLSX from 'xlsx';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, between, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { Db } from '@/db';
 import { accounts, categories, projects, recurring, transactions, vendors } from '@/db/schema';
 import { ACCOUNT_KIND_INFO, ACCOUNT_KINDS, type AccountKind, type Flow } from '@/lib/domain';
-import { convertNaverCsv, emptyBundle, isNaverCsv } from '@/lib/import/naver';
+import { convertNaverCsv, convertNaverRows, emptyBundle, isNaverCsv, isNaverRows } from '@/lib/import/naver';
+import { findDuplicates, type DedupeExisting } from '@/lib/import/dedupe';
 import { convertGasSheets, isGasTransactionsHeader } from '@/lib/import/gas';
 import { parseCsv } from '@/lib/import/csv';
 import type { ImportBundle } from '@/lib/import/types';
@@ -24,6 +25,13 @@ export function parseFiles(files: ImportFile[]): { bundle: ImportBundle; recogni
       for (const n of wb.SheetNames) {
         sheets[n] = XLSX.utils.sheet_to_json<string[]>(wb.Sheets[n], { header: 1, raw: false, defval: '' })
           .map((r) => r.map((c) => String(c ?? '')));
+      }
+      // 네이버 가계부 엑셀 내보내기(.xls)는 CSV 와 칸 구성이 같다
+      const naver = Object.values(sheets).filter(isNaverRows);
+      if (naver.length) {
+        for (const rows of naver) convertNaverRows(rows, bundle, f.name.normalize('NFC').includes('수입'));
+        recognized.push(f.name);
+        continue;
       }
       const before = bundle.rows.length;
       convertGasSheets(sheets, bundle);
@@ -59,16 +67,25 @@ function guessKind(name: string): AccountKind {
 const defaultFlow = (type: string): Flow =>
   type === '사업매출' ? 'IN' : type === '자금이동' ? 'NEUTRAL' : 'OUT';
 
-/** 묶음을 DB 에 넣는다. sourceKey 로 중복을 막으므로 다시 실행해도 안전하다. */
-export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1) {
-  await seedDefaults(db);
+export interface DuplicateItem { date: string; amount: number; description: string; existingDate: string; existing: string }
+
+/**
+ * 묶음을 DB 에 넣는다. 중복은 두 겹으로 막는다.
+ *   1) source_key — 같은 파일(같은 행)을 다시 올린 경우
+ *   2) 날짜·금액 대조 — 앱에 직접 입력한 거래가 네이버 파일에도 있는 경우 (src/lib/import/dedupe.ts)
+ * dryRun 이면 아무것도 쓰지 않고 결과만 계산한다.
+ */
+export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1, opts: { dryRun?: boolean } = {}) {
+  if (!opts.dryRun) await seedDefaults(db);
+  const original = b;
+  b = { ...b, rows: [...b.rows] };
 
   /* 계좌 */
   const accNames = new Set<string>();
   for (const r of b.rows) { if (r.from) accNames.add(r.from); if (r.to) accNames.add(r.to); }
   for (const o of b.openings) accNames.add(o.account);
   for (const r of b.recurring) { if (r.from) accNames.add(r.from); if (r.to) accNames.add(r.to); }
-  if (accNames.size) {
+  if (accNames.size && !opts.dryRun) {
     await db.insert(accounts).values([...accNames].map((name) => {
       const k = b.accountKinds?.[name];
       const kind = (ACCOUNT_KINDS as readonly string[]).includes(k ?? '') ? k as AccountKind : guessKind(name);
@@ -81,7 +98,7 @@ export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1) {
   /* 기초잔액 (피드백 4: 전월이월은 수입이 아니라 잔액) */
   const openingSum = new Map<string, number>();
   for (const o of b.openings) openingSum.set(o.account, (openingSum.get(o.account) ?? 0) + o.amount);
-  for (const [name, amount] of openingSum) {
+  for (const [name, amount] of opts.dryRun ? [] : openingSum) {
     await db.update(accounts).set({ openingBalance: amount, updatedAt: new Date() }).where(eq(accounts.name, name));
   }
 
@@ -94,11 +111,70 @@ export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1) {
       catKeys.set(k, { type: r.type, name: r.category, flow: r.type === '자금이동' ? 'NEUTRAL' : flow });
     }
   }
-  if (catKeys.size) {
+  if (catKeys.size && !opts.dryRun) {
     await db.insert(categories).values([...catKeys.values()].map((c) => ({ ...c, sortOrder: 900 }))).onConflictDoNothing();
   }
-  const catRows = await db.select({ id: categories.id, type: categories.type, name: categories.name }).from(categories);
+  const catRows = await db.select({ id: categories.id, type: categories.type, name: categories.name, flow: categories.flow }).from(categories);
   const catId = new Map(catRows.map((c) => [`${c.type}|${c.name}`, c.id]));
+  const catFlow = new Map(catRows.map((c) => [`${c.type}|${c.name}`, c.flow as Flow]));
+  const flowOf = (r: { type: string; category: string }) =>
+    catFlow.get(`${r.type}|${r.category}`) ?? catKeys.get(`${r.type}|${r.category}`)?.flow ?? defaultFlow(r.type);
+
+  /* 중복 검사 ① 이미 가져온 행 (source_key) */
+  const keys = b.rows.map((r) => r.sourceKey);
+  const known = new Set<string>();
+  for (let i = 0; i < keys.length; i += 1000) {
+    const found = await db.select({ k: transactions.sourceKey }).from(transactions).where(inArray(transactions.sourceKey, keys.slice(i, i + 1000)));
+    for (const f of found) if (f.k) known.add(f.k);
+  }
+  const alreadyImported = b.rows.filter((r) => known.has(r.sourceKey)).length;
+  b.rows = b.rows.filter((r) => !known.has(r.sourceKey));
+
+  /* 중복 검사 ② 출처가 다른 같은 거래 (날짜 · 금액) */
+  let sameItems: DuplicateItem[] = [];
+  let nearItems: DuplicateItem[] = [];
+  let amountItems: (DuplicateItem & { existingAmount: number })[] = [];
+  if (b.rows.length) {
+    const dates = b.rows.map((r) => r.date).sort();
+    const pool = await db.select({
+      id: transactions.id, date: transactions.date, amount: transactions.amount, flow: categories.flow,
+      description: transactions.description, category: categories.name, vendor: vendors.name,
+    }).from(transactions)
+      .innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .leftJoin(vendors, eq(transactions.vendorId, vendors.id))
+      .where(and(isNull(transactions.deletedAt),
+        between(transactions.date, sql`(${dates[0]}::date - 2)`, sql`(${dates.at(-1)}::date + 2)`)));
+    const existing: DedupeExisting[] = pool.map((e) => ({
+      id: e.id, date: e.date, amount: e.amount, flow: e.flow as Flow,
+      label: [e.description || e.vendor, e.category].filter(Boolean).join(' · '),
+      names: [e.description, e.vendor ?? ''],
+    }));
+    const d = findDuplicates(b.rows.map((r) => ({ key: r.sourceKey, date: r.date, amount: r.amount, flow: flowOf(r), description: r.description, names: [r.description, r.vendor ?? ''] })), existing);
+    const item = (m: (typeof d.same)[number]): DuplicateItem => ({
+      date: m.incoming.date, amount: m.incoming.amount, description: m.incoming.description,
+      existingDate: m.existing.date, existing: m.existing.label,
+    });
+    sameItems = d.same.map(item);
+    nearItems = d.near.map(item);
+    amountItems = d.amountDiffers.map((m) => ({ ...item(m), existingAmount: m.existing.amount }));
+    const skip = new Set([...d.same, ...d.amountDiffers].map((m) => m.incoming.key));
+    b.rows = b.rows.filter((r) => !skip.has(r.sourceKey));
+  }
+
+  const months = [...new Set(original.rows.map((r) => r.date.slice(0, 7)))].sort();
+  const summary = {
+    total: original.rows.length,
+    alreadyImported,
+    sameAsExisting: sameItems,
+    nearDuplicates: nearItems,
+    amountDiffers: amountItems,
+    months: months.length ? `${months[0]} ~ ${months.at(-1)} (${months.length}개월)` : '',
+    skippedCarry: original.stats.skippedCarry,
+    skippedOther: original.stats.skippedOther,
+  };
+  if (opts.dryRun) {
+    return { ...summary, inserted: b.rows.length, duplicates: alreadyImported + sameItems.length + amountItems.length, recurringAdded: 0, openings: [] as { account: string; amount: number }[], dryRun: true };
+  }
 
   /* 거래처 · 학교 */
   const vNames = [...new Set([...b.rows, ...b.recurring].map((r) => r.vendor?.trim()).filter(Boolean) as string[])];
@@ -161,16 +237,13 @@ export async function commitBundle(db: Db, b: ImportBundle, vatRate = 0.1) {
     recurringAdded++;
   }
 
-  const months = [...new Set(b.rows.map((r) => r.date.slice(0, 7)))].sort();
   return {
-    total: b.rows.length,
+    ...summary,
     inserted,
-    duplicates: b.rows.length - inserted,
+    duplicates: original.rows.length - inserted,
     recurringAdded,
     openings: [...openingSum].map(([account, amount]) => ({ account, amount })),
-    months: months.length ? `${months[0]} ~ ${months.at(-1)} (${months.length}개월)` : '',
-    skippedCarry: b.stats.skippedCarry,
-    skippedOther: b.stats.skippedOther,
+    dryRun: false,
   };
 }
 

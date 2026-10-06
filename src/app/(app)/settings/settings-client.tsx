@@ -230,7 +230,9 @@ export function BusinessSection() {
 
 /* ── 데이터 가져오기 · 내보내기 ─────────────────────── */
 
-type ImportResult = { total: number; inserted: number; duplicates: number; recurringAdded: number; openings: { account: string; amount: number }[]; months: string; skippedCarry: number; skippedOther: number; recognized: string[]; unknown: string[] };
+type DupItem = { date: string; amount: number; description: string; existingDate: string; existing: string; existingAmount?: number };
+type ImportResult = { alreadyImported: number; sameAsExisting: DupItem[]; nearDuplicates: DupItem[]; amountDiffers: DupItem[];
+  total: number; inserted: number; duplicates: number; recurringAdded: number; openings: { account: string; amount: number }[]; months: string; skippedCarry: number; skippedOther: number; recognized: string[]; unknown: string[] };
 
 export function DataSection({ stats }: { stats: { source: string; n: number; min: string; max: string }[] }) {
   const { toast, confirm } = useApp();
@@ -280,20 +282,50 @@ export function DataSection({ stats }: { stats: { source: string; n: number; min
       <form className="card p-5 flex flex-col gap-3" onSubmit={upload}>
         <h2 className="font-bold">데이터 가져오기</h2>
         <ul className="text-sm text-ink-2 list-disc pl-5 leading-relaxed">
-          <li><b>네이버 가계부</b> — 수입현황·지출현황 CSV 파일을 여러 개 한꺼번에 고르세요. <b>전월이월(통장잔고·잔고이체)은 수입에서 빼고 통장 기초잔액으로</b> 넣습니다.</li>
+          <li><b>네이버 가계부</b> — 수입현황·지출현황 파일(CSV 또는 엑셀 .xls)을 여러 개 한꺼번에 고르세요. <b>전월이월(통장잔고·잔고이체)은 수입에서 빼고 통장 기초잔액으로</b> 넣습니다.</li>
           <li><b>예전 캐시로그 구글시트</b> — 구글시트에서 [파일 › 다운로드 › Microsoft Excel(.xlsx)]로 받은 파일 하나를 고르세요. 직접 입력했던 거래·계좌·반복거래를 옮깁니다.</li>
-          <li>같은 파일을 여러 번 올려도 <b>중복으로 들어가지 않습니다.</b></li>
+          <li><b>중복은 자동으로 걸러집니다.</b> 같은 파일을 다시 올려도, 기간이 겹치는 파일을 올려도, 앱에 이미 직접 입력한 거래(같은 날 · 같은 금액)가 있어도 한 번만 들어갑니다.</li>
         </ul>
         <input ref={fileRef} type="file" name="files" multiple accept=".csv,.xlsx,.xls" className="input pt-3" required />
         <button className="btn btn-primary" disabled={pending}>{pending ? '가져오는 중… (1~2분 걸릴 수 있어요)' : '가져오기'}</button>
         {result && (
-          <div className="rounded-2xl bg-brand-soft p-4 text-sm leading-relaxed">
-            <p className="font-bold text-base">✅ {result.inserted.toLocaleString('ko-KR')}건 추가 {result.duplicates > 0 && <span className="font-normal">(이미 있던 {result.duplicates.toLocaleString('ko-KR')}건은 건너뜀)</span>}</p>
-            {result.months && <p>기간: {result.months}</p>}
-            {result.openings.map((o) => <p key={o.account}>기초잔액: {o.account} {o.amount.toLocaleString('ko-KR')}원 (수입 아님)</p>)}
-            {result.recurringAdded > 0 && <p>고정지출 {result.recurringAdded}건 등록</p>}
-            {result.skippedOther > 0 && <p className="text-muted">삭제됐거나 네이버에서 온 시트 행 {result.skippedOther}건은 건너뜀</p>}
+          <div className="rounded-2xl bg-brand-soft p-4 text-sm leading-relaxed flex flex-col gap-2">
+            <p className="font-bold text-base">✅ 새 거래 {result.inserted.toLocaleString('ko-KR')}건을 넣었습니다</p>
+            <ul className="list-disc pl-5">
+              <li>파일 속 거래 {result.total.toLocaleString('ko-KR')}건{result.months && ` (${result.months})`}</li>
+              {result.alreadyImported > 0 && <li>예전에 이미 가져온 {result.alreadyImported.toLocaleString('ko-KR')}건은 건너뜀</li>}
+              {result.sameAsExisting.length > 0 && <li>앱에 이미 입력돼 있던 {result.sameAsExisting.length}건은 건너뜀 (아래 목록)</li>}
+              {result.openings.map((o) => <li key={o.account}>기초잔액: {o.account} {o.amount.toLocaleString('ko-KR')}원 (수입 아님)</li>)}
+              {result.recurringAdded > 0 && <li>고정지출 {result.recurringAdded}건 등록</li>}
+              {result.skippedOther > 0 && <li className="text-muted">삭제됐거나 네이버에서 온 시트 행 {result.skippedOther}건은 건너뜀</li>}
+            </ul>
             {result.unknown.length > 0 && <p className="text-danger">알 수 없는 파일: {result.unknown.join(', ')}</p>}
+            {result.amountDiffers.length > 0 && (
+              <div className="rounded-xl bg-warn-soft text-warn-ink p-3">
+                <p className="font-bold">⚠️ 금액 확인 필요 {result.amountDiffers.length}건 — 같은 날 같은 곳인데 금액이 달라 넣지 않았습니다</p>
+                <ul className="mt-1">{result.amountDiffers.map((x, i) => (
+                  <li key={i} className="num">· {x.date} {x.description}: 파일 {x.amount.toLocaleString('ko-KR')}원 ↔ 장부 {(x.existingAmount ?? 0).toLocaleString('ko-KR')}원</li>
+                ))}</ul>
+                <p className="mt-1">장부의 금액이 틀렸다면 가계부에서 그 거래를 눌러 고쳐 주세요.</p>
+              </div>
+            )}
+            {result.nearDuplicates.length > 0 && (
+              <div className="rounded-xl bg-surface p-3">
+                <p className="font-bold">🔍 중복인지 확인해 보세요 {result.nearDuplicates.length}건 — 금액이 같고 날짜가 1~2일 차이 나서 일단 넣었습니다</p>
+                <ul className="mt-1">{result.nearDuplicates.map((x, i) => (
+                  <li key={i} className="num">· {x.date} {x.description} {x.amount.toLocaleString('ko-KR')}원 ↔ {x.existingDate} {x.existing}</li>
+                ))}</ul>
+                <p className="mt-1 text-muted">같은 거래라면 하나를 지우면 됩니다.</p>
+              </div>
+            )}
+            {result.sameAsExisting.length > 0 && (
+              <details className="rounded-xl bg-surface p-3">
+                <summary className="cursor-pointer font-semibold">앱에 이미 있어서 건너뛴 {result.sameAsExisting.length}건 보기</summary>
+                <ul className="mt-1">{result.sameAsExisting.map((x, i) => (
+                  <li key={i} className="num">· {x.date} {x.description} {x.amount.toLocaleString('ko-KR')}원 ↔ {x.existing}</li>
+                ))}</ul>
+              </details>
+            )}
           </div>
         )}
       </form>
