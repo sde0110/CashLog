@@ -133,6 +133,9 @@ function classifyExpense(name: string, cat: string, tags: string, acc: string): 
   // 카드로는 계좌 이동을 할 수 없으므로, 자금이동의 출금은 통장으로 본다
   const bank = /카드|페이|동백|오륙도/.test(acc) ? BIZ : acc;
 
+  // 노란우산공제 · 국민연금 납입은 비용이 아니라 적립(자금이동) — 네이버에서 어느 분류에 있든
+  if (has(name, '노란우산')) return { type: '자금이동', category: '공제부금납입', from: bank, to: '연금·공제' };
+
   if (has(tags, '자금이동') || big === '이체/대체' || big === '저축/보험') {
     if (has(name, '노란우산', '국민연금')) return { type: '자금이동', category: '공제부금납입', from: bank, to: '연금·공제' };
     if (has(name, '주식', 'ETF', 'CMA', '코인', '빗썸', '업비트', '펀드', '투신')) return { type: '자금이동', category: '투자계좌이체', from: bank, to: '투자계좌' };

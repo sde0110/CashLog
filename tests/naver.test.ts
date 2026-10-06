@@ -48,6 +48,10 @@ describe('네이버 가계부 CSV 변환', () => {
     expect(find('주민세')).toMatchObject({ type: '세금', category: '주민세' });
   });
 
+  it('노란우산공제는 네이버에서 어느 분류에 있든 비용이 아니라 공제부금납입(이체)', () => {
+    expect(find('노란우산공제보험')).toMatchObject({ type: '자금이동', category: '공제부금납입', from: 'KB기업 사업통장', to: '연금·공제' });
+  });
+
   it('보험금·이자·환급·적금만기는 매출이 아니다', () => {
     expect(find('실손보험금')).toMatchObject({ type: '기타', category: '보험보상금' });
     expect(find('예금이자')).toMatchObject({ type: '기타', category: '금융수입' });
