@@ -174,14 +174,15 @@ export function NamedSection({ kind }: { kind: 'vendor' | 'project' }) {
   const { masters } = useApp();
   const list = kind === 'vendor' ? masters.vendors : masters.projects;
   const [q, setQ] = useState('');
-  const [edit, setEdit] = useState<{ id?: number; name: string; active: boolean } | null>(null);
+  const [edit, setEdit] = useState<{ id?: number; name: string; active: boolean; bizNo?: string } | null>(null);
   const { pending, run } = useSave();
   const [name, setName] = useState('');
+  const [bizNo, setBizNo] = useState('');
   const [active, setActive] = useState(true);
   const shown = list.filter((x) => x.name.toLowerCase().includes(q.toLowerCase()));
   const word = kind === 'vendor' ? '거래처' : '학교/프로젝트';
-  const open = (x: { id?: number; name: string; active: boolean }) => { setEdit(x); setName(x.name); setActive(x.active); };
-  const save = () => run(() => (kind === 'vendor' ? saveVendor({ id: edit?.id, name, active }) : saveProject({ id: edit?.id, name, active })), () => setEdit(null));
+  const open = (x: { id?: number; name: string; active: boolean; bizNo?: string }) => { setEdit(x); setName(x.name); setBizNo(x.bizNo ?? ''); setActive(x.active); };
+  const save = () => run(() => (kind === 'vendor' ? saveVendor({ id: edit?.id, name, bizNo, active }) : saveProject({ id: edit?.id, name, active })), () => setEdit(null));
   return (
     <>
       <div className="flex gap-2">
@@ -192,7 +193,10 @@ export function NamedSection({ kind }: { kind: 'vendor' | 'project' }) {
       <section className="card overflow-hidden">
         <ul className="divide-y divide-line">
           {shown.slice(0, 300).map((x) => (
-            <li key={x.id}><button className={`w-full text-left px-5 py-3 hover:bg-surface-2 ${x.active ? '' : 'opacity-50'}`} onClick={() => open(x)}>{x.name}{!x.active && ' (숨김)'}</button></li>
+            <li key={x.id}><button className={`w-full text-left px-5 py-3 hover:bg-surface-2 flex items-center gap-3 ${x.active ? '' : 'opacity-50'}`} onClick={() => open(x)}>
+              <span className="flex-1">{x.name}{!x.active && ' (숨김)'}</span>
+              {x.bizNo && <span className="text-xs text-muted num">{x.bizNo}</span>}
+            </button></li>
           ))}
           {!shown.length && <li className="px-5 py-6 text-muted text-center">없음</li>}
         </ul>
@@ -200,6 +204,10 @@ export function NamedSection({ kind }: { kind: 'vendor' | 'project' }) {
       {edit && (
         <Modal title={edit.id ? `${word} 수정` : `${word} 추가`} onClose={() => setEdit(null)} onSave={save} pending={pending}>
           <label className="field"><span>이름</span><input className="input" value={name} onChange={(e) => setName(e.target.value)} required autoFocus /></label>
+          {kind === 'vendor' && (
+            <label className="field"><span>사업자등록번호 (선택 — 엑셀 장부의 매출·매입 시트에 나옵니다)</span>
+              <input className="input num" value={bizNo} onChange={(e) => setBizNo(e.target.value.replace(/[^0-9-]/g, '').slice(0, 12))} inputMode="numeric" placeholder="000-00-00000" /></label>
+          )}
           <Active v={active} set={setActive} />
         </Modal>
       )}

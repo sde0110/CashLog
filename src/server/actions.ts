@@ -275,7 +275,10 @@ export async function saveVendor(input: { id?: number; name: string; bizNo?: str
   return run(async () => {
     const name = String(input.name ?? '').trim();
     if (!name) throw new UserError('거래처 이름을 입력해 주세요.');
-    const v = { name, bizNo: input.bizNo ?? '', manager: input.manager ?? '', phone: input.phone ?? '', memo: input.memo ?? '', active: input.active ?? true };
+    const digits = String(input.bizNo ?? '').replace(/[^0-9]/g, '');
+    if (digits && digits.length !== 10) throw new UserError('사업자등록번호는 숫자 10자리입니다.');
+    const bizNo = digits ? `${digits.slice(0, 3)}-${digits.slice(3, 5)}-${digits.slice(5)}` : '';
+    const v = { name, bizNo, manager: input.manager ?? '', phone: input.phone ?? '', memo: input.memo ?? '', active: input.active ?? true };
     const db = getDb();
     if (input.id) await db.update(vendors).set(v).where(eq(vendors.id, input.id));
     else await db.insert(vendors).values(v);

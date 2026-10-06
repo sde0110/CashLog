@@ -150,3 +150,17 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
   .no-print { display: none !important; }
   .card { box-shadow: none; border: 1px solid #ddd; }
 }
+
+/* 사용설명서 — 번호 동그라미 단계 */
+.help-steps { list-style: none; padding: 0; counter-reset: s; }
+.help-steps > li { counter-increment: s; position: relative; padding-left: 2.4rem; min-height: 1.8rem; }
+.help-steps > li::before {
+  content: counter(s); position: absolute; left: 0; top: 0.05rem;
+  width: 1.65rem; height: 1.65rem; border-radius: 999px; background: var(--brand); color: #fff;
+  font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center;
+}
+.help-body p + p { margin-top: 0.6rem; }
+@media print {
+  .help-page .card { break-inside: auto; }
+  .help-page h2, .help-page h3 { break-after: avoid; }
+}

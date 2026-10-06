@@ -12,8 +12,9 @@ const ITEMS = [
   { href: '/fixed', label: '고정지출', icon: '🔁' },
   { href: '/search', label: '검색', icon: '🔍' },
   { href: '/settings', label: '설정', icon: '⚙️' },
+  { href: '/help', label: '도움말', icon: '❓' },
 ];
-// 휴대폰 하단 탭은 5개까지만 — 검색은 가계부 화면 상단 버튼으로
+// 휴대폰 하단 탭은 6개 — 검색은 가계부 화면 상단 버튼으로
 const MOBILE = ITEMS.filter((i) => i.href !== '/search');
 
 export function Nav({ businessName }: { businessName: string }) {
@@ -41,10 +42,10 @@ export function Nav({ businessName }: { businessName: string }) {
       </aside>
 
       <nav className="no-print md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface/95 backdrop-blur border-t border-line pb-[env(safe-area-inset-bottom)]">
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {MOBILE.map((i) => (
             <li key={i.href}>
-              <Link href={i.href} className={`flex flex-col items-center justify-center gap-0.5 min-h-[60px] text-[0.72rem] font-semibold ${active(i.href) ? 'text-brand-ink' : 'text-muted'}`}>
+              <Link href={i.href} className={`flex flex-col items-center justify-center gap-0.5 min-h-[60px] text-[0.7rem] font-semibold ${active(i.href) ? 'text-brand-ink' : 'text-muted'}`}>
                 <span className={`text-xl ${active(i.href) ? '' : 'grayscale opacity-70'}`} aria-hidden>{i.icon}</span>{i.label}
               </Link>
             </li>

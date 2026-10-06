@@ -25,15 +25,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   }
 
   const fails = await recentLoginFailures();
-  const weak = (process.env.APP_PASSWORD ?? '').length < 8;
 
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold">설정</h1>
-      {(fails > 0 || weak) && (
+      {fails > 0 && (
         <div className="card p-4 bg-warn-soft text-warn-ink text-sm leading-relaxed">
-          {fails > 0 && <p>⚠️ 최근 24시간 동안 비밀번호를 <b>{fails}번</b> 틀린 기록이 있습니다. 본인이 아니라면 비밀번호를 바꿔 주세요.</p>}
-          {weak && <p>🔒 비밀번호가 짧습니다. 8자 이상(글자+숫자)으로 바꾸면 훨씬 안전합니다. 바꾸면 모든 기기에서 다시 로그인해야 합니다.</p>}
+          <p>⚠️ 최근 24시간 동안 비밀번호를 <b>{fails}번</b> 틀린 기록이 있습니다. 본인이 아니라면 비밀번호를 바꿔 주세요.</p>
         </div>
       )}
       <div className="scroll-x"><div className="min-w-[34rem]"><Tabs current={tab} items={TABS.map((x) => ({ ...x, href: `/settings?tab=${x.key}` }))} /></div></div>

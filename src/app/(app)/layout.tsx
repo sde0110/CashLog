@@ -12,7 +12,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     accounts: m.accounts.map(({ id, name, kind, institution, linkedAccountId, openingBalance, active, memo, sortOrder }) =>
       ({ id, name, kind, institution, linkedAccountId, openingBalance, active, memo, sortOrder })),
     categories: m.categories.map(({ id, type, name, flow, icon, active, memo }) => ({ id, type, name, flow, icon, active, memo })),
-    vendors: m.vendors.map(({ id, name, active }) => ({ id, name, active })),
+    vendors: m.vendors.map(({ id, name, active, bizNo }) => ({ id, name, active, bizNo })),
     projects: m.projects.map(({ id, name, active }) => ({ id, name, active })),
     settings: m.settings,
   };

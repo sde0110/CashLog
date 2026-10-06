@@ -6,7 +6,7 @@ import type { TxView } from '@/lib/ledger';
 
 export interface ClientAccount { id: number; name: string; kind: string; institution: string; linkedAccountId: number | null; openingBalance: number; active: boolean; memo: string; sortOrder: number }
 export interface ClientCategory { id: number; type: string; name: string; flow: string; icon: string; active: boolean; memo: string }
-export interface ClientNamed { id: number; name: string; active: boolean }
+export interface ClientNamed { id: number; name: string; active: boolean; bizNo?: string }
 export interface ClientMasters {
   accounts: ClientAccount[];
   categories: ClientCategory[];
